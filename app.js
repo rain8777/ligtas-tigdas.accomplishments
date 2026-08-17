@@ -357,7 +357,7 @@ const fmt = n => (Math.round(n) || 0).toLocaleString('en-US');
 function pctFmt(part, whole){ return whole > 0 ? (part/whole*100).toFixed(1) + '%' : '0.0%'; }
 function pctClass(p){ return p >= 95 ? 'good' : (p >= 50 ? 'mid' : (p > 0 ? 'low' : 'zero')); }
 function progressClass(cumPct, dayIdx){
-  const expected = (dayIdx + 1) / 15 * 100;
+  const expected = (dayIdx + 1) * 9.5;
   if (cumPct >= expected) return 'good';
   if (cumPct >= expected * 0.75) return 'mid';
   return cumPct > 0 ? 'low' : 'zero';
