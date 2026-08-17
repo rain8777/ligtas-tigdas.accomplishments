@@ -356,6 +356,12 @@ function setStatus(cls, text){
 const fmt = n => (Math.round(n) || 0).toLocaleString('en-US');
 function pctFmt(part, whole){ return whole > 0 ? (part/whole*100).toFixed(1) + '%' : '0.0%'; }
 function pctClass(p){ return p >= 95 ? 'good' : (p >= 50 ? 'mid' : (p > 0 ? 'low' : 'zero')); }
+function progressClass(cumPct, dayIdx){
+  const expected = (dayIdx + 1) / 15 * 100;
+  if (cumPct >= expected) return 'good';
+  if (cumPct >= expected * 0.75) return 'mid';
+  return cumPct > 0 ? 'low' : 'zero';
+}
 
 /* ---------------- Scope ---------------- */
 function makeScopes(){
@@ -523,19 +529,24 @@ function openLGUModal(ent){
   // daily bar chart
   const activeDays = CURRENT_DAY_IDX >= 0 ? ent.days.slice(0, CURRENT_DAY_IDX + 1) : ent.days;
   const maxDay = Math.max.apply(null, activeDays) || 1;
+  let cumSumBar = 0;
   const chart = document.getElementById('lgu-daily-chart');
   chart.innerHTML = DAYS.map((d,idx) => {
     const isFuture = CURRENT_DAY_IDX >= 0 && idx > CURRENT_DAY_IDX;
     const v = isFuture ? 0 : ent.days[idx];
+    if (!isFuture) cumSumBar += v;
     const h = isFuture ? 2 : Math.max(v/maxDay*100, v>0 ? 4 : 1);
-    return `<div class="bar-wrap ${isFuture ? 'bar-future' : ''}" title="${d.label}: ${isFuture ? 'Upcoming' : fmt(v) + ' (' + pctFmt(v, ent.target) + ')'}">
+    const cumP = isFuture ? 0 : pctOf(cumSumBar, ent.target);
+    const cls = isFuture ? 'bar-future-col' : (v===0 ? 'bar-empty' : '');
+    return `<div class="bar-wrap ${isFuture ? 'bar-future' : ''}" title="${d.label}: ${isFuture ? 'Upcoming' : fmt(v) + ' (' + pctFmt(cumSumBar, ent.target) + ' cumulative)'}">
       <span class="bar-val">${!isFuture && v ? fmt(v) : ''}</span>
-      <span class="bar-col ${isFuture ? 'bar-future-col' : (v===0 ? 'bar-empty' : '')}" style="height:${h}%"></span>
+      <span class="bar-col ${cls}" style="height:${h}%"></span>
       <span class="bar-day">${d.label}</span>
     </div>`;
   }).join('');
 
   // daily table
+  let cumSum = 0;
   const dailyRows = DAYS.map((d, idx) => {
     const isFuture = CURRENT_DAY_IDX >= 0 && idx > CURRENT_DAY_IDX;
     if (isFuture) {
@@ -545,11 +556,12 @@ function openLGUModal(ent){
         <td class="pct">&mdash;</td>
       </tr>`;
     }
-    const v = ent.days[d.i];
+    cumSum += ent.days[d.i];
+    const cumP = pctOf(cumSum, ent.target);
     return `<tr>
       <td>${d.label}</td>
-      <td class="num">${fmt(v)}</td>
-      <td class="pct ${pctClass(pctOf(v, ent.target))}">${pctFmt(v, ent.target)}</td>
+      <td class="num">${fmt(ent.days[d.i])}</td>
+      <td class="pct ${progressClass(cumP, idx)}">${pctFmt(cumSum, ent.target)}</td>
     </tr>`;
   }).join('');
   document.getElementById('lgu-daily-table').innerHTML =
@@ -613,9 +625,11 @@ function renderTable(){
 
 function makeTableRow(ent, kind){
   const pct = pctOf(ent.overall, ent.target);
-  const days = ent.days.map(v => {
-    const p = pctOf(v, ent.target);
-    return `<td><span class="num">${fmt(v)}</span> <span class="pct ${pctClass(p)}">${pctFmt(v, ent.target)}</span></td>`;
+  let cumSum = 0;
+  const days = ent.days.map((v, i) => {
+    cumSum += v;
+    const cumP = pctOf(cumSum, ent.target);
+    return `<td><span class="num">${fmt(v)}</span> <span class="pct ${progressClass(cumP, i)}">${pctFmt(cumSum, ent.target)}</span></td>`;
   }).join('');
   const weeks = [0,1,2].map(w => {
     const wv = weekVal(ent, w);
