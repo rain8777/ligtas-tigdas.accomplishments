@@ -39,14 +39,10 @@ function colIndex(letter){
 const COL = {
   name: colIndex('A'),
   target: colIndex('B'),
-  days: ['C','E','G','I','K','Q','S','U','W','Y','AE','AG','AI','AK','AM'].map(colIndex),
-  weekTotal: ['M','AA','AO'].map(colIndex),
-  weekDeferred: ['O','AC','AQ'].map(colIndex),
-  weekRefusal: ['P','AD','AR'].map(colIndex),
-  overall: colIndex('AS'),
-  overallDeferred: colIndex('AU'),
-  overallRefusal: colIndex('AV'),
-  remaining: colIndex('AW')
+  days: ['C','E','G','I','K','S','U','W','Y','AA','AG','AI','AK','AM','AO'].map(colIndex),
+  weekTotal: ['M','AC','AQ'].map(colIndex),
+  weekDeferred: ['Q','AE','AS'].map(colIndex),
+  weekRefusal: ['R','AF','AT'].map(colIndex)
 };
 
 const CONFIG = {
@@ -116,10 +112,6 @@ function parseEntity(row, name, kind, province, psgc){
     e.deferred[w] = num(row[COL.weekDeferred[w]]);
     e.refusal[w]  = num(row[COL.weekRefusal[w]]);
   }
-  e.overall = num(row[COL.overall]);
-  e.overallDeferred = num(row[COL.overallDeferred]);
-  e.overallRefusal  = num(row[COL.overallRefusal]);
-  e.remaining = num(row[COL.remaining]);
   finalizeEntity(e);
   return e;
 }
@@ -183,12 +175,7 @@ function mergeEntity(computed, sheet){
       if (out.deferred[w] === 0 && sheet.deferred[w] > 0) out.deferred[w] = sheet.deferred[w];
       if (out.refusal[w] === 0 && sheet.refusal[w] > 0) out.refusal[w] = sheet.refusal[w];
     }
-    if (out.overall === 0 && sheet.overall > 0) out.overall = sheet.overall;
-    if (out.overallDeferred === 0 && sheet.overallDeferred > 0) out.overallDeferred = sheet.overallDeferred;
-    if (out.overallRefusal === 0 && sheet.overallRefusal > 0) out.overallRefusal = sheet.overallRefusal;
   }
-  // Remaining: keep a manually encoded value, otherwise target - vaccinated
-  out.remaining = (sheet && sheet.remaining > 0) ? sheet.remaining : Math.max(0, out.target - out.overall);
   return finalizeEntity(out);
 }
 
@@ -544,7 +531,6 @@ function openLGUModal(ent){
   }).join('');
 
   // daily table
-  let cum = 0;
   const dailyRows = DAYS.map((d, idx) => {
     const isFuture = CURRENT_DAY_IDX >= 0 && idx > CURRENT_DAY_IDX;
     if (isFuture) {
@@ -552,21 +538,17 @@ function openLGUModal(ent){
         <td>${d.label}</td>
         <td class="num">&mdash;</td>
         <td class="pct">&mdash;</td>
-        <td class="num">${fmt(cum)}</td>
-        <td class="pct ${pctClass(pctOf(cum, ent.target))}">${pctFmt(cum, ent.target)}</td>
       </tr>`;
     }
-    cum += ent.days[d.i];
+    const v = ent.days[d.i];
     return `<tr>
       <td>${d.label}</td>
-      <td class="num">${fmt(ent.days[d.i])}</td>
-      <td class="pct ${pctClass(pctOf(ent.days[d.i], ent.target))}">${pctFmt(ent.days[d.i], ent.target)}</td>
-      <td class="num">${fmt(cum)}</td>
-      <td class="pct ${pctClass(pctOf(cum, ent.target))}">${pctFmt(cum, ent.target)}</td>
+      <td class="num">${fmt(v)}</td>
+      <td class="pct ${pctClass(pctOf(v, ent.target))}">${pctFmt(v, ent.target)}</td>
     </tr>`;
   }).join('');
   document.getElementById('lgu-daily-table').innerHTML =
-    `<thead><tr><th>Date</th><th>Vaccinated</th><th>Daily %</th><th>Cumulative</th><th>Cumulative %</th></tr></thead>
+    `<thead><tr><th>Date</th><th>Vaccinated</th><th>Daily %</th></tr></thead>
      <tbody>${dailyRows}</tbody>`;
 
   // weekly + overall table

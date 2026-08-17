@@ -305,14 +305,15 @@ percentages itself from the raw counts.
 | A | Name (region / province / city / municipality) |
 | B | Target population (6–59 months) |
 | C, E, G, I, K | Daily count, Week 1 (Aug 10–14) |
-| M, O, P | Week 1 total / deferred / refusal |
-| Q, S, U, W, Y | Daily count, Week 2 (Aug 17–21) |
-| AA, AC, AD | Week 2 total / deferred / refusal |
-| AE, AG, AI, AK, AM | Daily count, Week 3 (Aug 24–28) |
-| AO, AQ, AR | Week 3 total / deferred / refusal |
-| AS, AU, AV | Overall total / deferred / refusal |
-| AW | Remaining unvaccinated |
+| M | Week 1 total |
+| Q, R | Week 1 deferred / refusal |
+| S, U, W, Y, AA | Daily count, Week 2 (Aug 17–21) |
+| AC | Week 2 total |
+| AE, AF | Week 2 deferred / refusal |
+| AG, AI, AK, AM, AO | Daily count, Week 3 (Aug 24–28) |
+| AQ | Week 3 total |
+| AS, AT | Week 3 deferred / refusal |
 
-(Columns in between, like D, F, N, R, etc., are typically daily/weekly
+(Columns in between, like D, F, N, O, P, etc., are typically daily/weekly
 percentage columns — safe to keep for your own reading, the dashboard
 just skips over them.)
