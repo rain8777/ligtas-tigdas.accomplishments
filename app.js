@@ -14,6 +14,19 @@ const DAYS = [
   { i:12,label:'Aug 26', week:3 }, { i:13,label:'Aug 27', week:3 },
   { i:14,label:'Aug 28', week:3 }
 ];
+const DAY_DATES = [
+  new Date(2026,7,10), new Date(2026,7,11), new Date(2026,7,12),
+  new Date(2026,7,13), new Date(2026,7,14), new Date(2026,7,17),
+  new Date(2026,7,18), new Date(2026,7,19), new Date(2026,7,20),
+  new Date(2026,7,21), new Date(2026,7,24), new Date(2026,7,25),
+  new Date(2026,7,26), new Date(2026,7,27), new Date(2026,7,28)
+];
+function getCurrentDayIndex(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  for (let i = DAY_DATES.length-1; i >= 0; i--) if (now >= DAY_DATES[i]) return i;
+  return -1;
+}
+const CURRENT_DAY_IDX = getCurrentDayIndex();
 const WEEK_LABELS = ['Week 1 (Aug 10–14)','Week 2 (Aug 17–21)','Week 3 (Aug 24–28)'];
 const WEEK_SHORT = ['Wk 1','Wk 2','Wk 3'];
 
@@ -121,6 +134,23 @@ function finalizeEntity(e){
     e.remaining = Math.max(0, e.target - e.overall);
   }
   return e;
+}
+function clipEntityToToday(e){
+  if (CURRENT_DAY_IDX < 0 || CURRENT_DAY_IDX >= 14) return e;
+  for (let i = CURRENT_DAY_IDX+1; i < 15; i++) e.days[i] = 0;
+  for (let w = 0; w < 3; w++){
+    let s = 0;
+    for (let i = 0; i < 15; i++) if (DAYS[i].week === w+1) s += e.days[i];
+    e.week[w] = s;
+  }
+  e.overall = e.week.reduce((a,b) => a+b, 0);
+  e.remaining = Math.max(0, e.target - e.overall);
+  return e;
+}
+function clipModelToToday(model){
+  clipEntityToToday(model.region);
+  model.provinces.forEach(clipEntityToToday);
+  for (const k of Object.keys(model.lguGroups)) model.lguGroups[k].forEach(clipEntityToToday);
 }
 function sumEntities(list){
   const out = emptyEntity('__SUM__', 'sum');
@@ -302,15 +332,18 @@ async function initData(){
   if (csv){
     try{
       MODEL = buildModelFromSheet(csv);
+      clipModelToToday(MODEL);
       DATA_MODE = 'live';
       setStatus('live', 'Live · Google Sheet');
     }catch(e){
       MODEL = buildModelFromFallback();
+      clipModelToToday(MODEL);
       DATA_MODE = 'offline';
       setStatus('offline', 'Parse error · sample data');
     }
   } else {
     MODEL = buildModelFromFallback();
+    clipModelToToday(MODEL);
     DATA_MODE = 'offline';
     setStatus('offline', 'Offline · sample data');
   }
@@ -335,7 +368,7 @@ function pctClass(p){ return p >= 95 ? 'good' : (p >= 50 ? 'mid' : (p > 0 ? 'low
 /* ---------------- Scope ---------------- */
 function makeScopes(){
   const scopes = [
-    { id:'overall', label:'Overall', type:'overall' },
+    { id:'overall', label:'Current', type:'overall' },
     { id:'wk1', label:'Week 1 — Aug 10–14', type:'week', w:0 },
     { id:'wk2', label:'Week 2 — Aug 17–21', type:'week', w:1 },
     { id:'wk3', label:'Week 3 — Aug 24–28', type:'week', w:2 }
@@ -350,7 +383,7 @@ function scopeValue(ent, scope){
 }
 
 let state = {
-  scope: { id:'overall', label:'Overall', type:'overall' },
+  scope: { id:'overall', label:'Current', type:'overall' },
   metric: 'pct',          // pct | count
   hideZero: false,
   selectedProvince: null,
@@ -368,9 +401,9 @@ function renderKPIs(){
   const cards = [
     { cls:'accent', label:'Projected Target (6–59 mo)', value: fmt(r.target), sub:'Population 6–59 months' },
     { cls:'teal', label:'Total Vaccinated', value: fmt(r.overall), sub:'MR administered' },
-    { cls: pctClass(overallPct), label:'Overall Accomplishment', value: overallPct.toFixed(1)+'%', sub: fmt(r.overall)+' / '+fmt(r.target), bar: Math.min(overallPct,100) },
-    { cls:'', label:'Deferred', value: fmt(r.overallDeferred), sub:'Week 1–3 total' },
-    { cls:'bad', label:'Refusal', value: fmt(r.overallRefusal), sub:'Week 1–3 total' },
+    { cls: pctClass(overallPct), label:'Current Accomplishment', value: overallPct.toFixed(1)+'%', sub: fmt(r.overall)+' / '+fmt(r.target), bar: Math.min(overallPct,100) },
+    { cls:'', label:'Deferred', value: fmt(r.overallDeferred), sub:'Current total' },
+    { cls:'bad', label:'Refusal', value: fmt(r.overallRefusal), sub:'Current total' },
     { cls: remPct > 30 ? 'warn':'', label:'Remaining Unvaccinated', value: fmt(r.remaining), sub: remPct.toFixed(1)+'% of target' }
   ];
   el.innerHTML = cards.map(c => `
@@ -419,7 +452,7 @@ function renderRankings(){
 
   const heading = document.getElementById('rank-heading');
   const sub = document.getElementById('rank-sub');
-  const scopeLabel = state.scope.type==='overall' ? 'Overall' : (state.scope.type==='week' ? WEEK_LABELS[state.scope.w] : state.scope.label);
+  const scopeLabel = state.scope.type==='overall' ? 'Current' : (state.scope.type==='week' ? WEEK_LABELS[state.scope.w] : state.scope.label);
   heading.textContent = 'Province Rankings';
   sub.textContent = `${scopeLabel} · ${state.metric==='pct' ? 'by accomplishment %' : 'by no. vaccinated'}`;
 
@@ -485,32 +518,44 @@ function openLGUModal(ent){
   const pct = ent.target > 0 ? ent.overall/ent.target*100 : 0;
   const kpis = [
     ['Projected Target', fmt(ent.target), '6–59 months'],
-    ['Vaccinated (Overall)', fmt(ent.overall), 'MR administered'],
+    ['Vaccinated (Current)', fmt(ent.overall), 'MR administered'],
     ['Accomplishment', pct.toFixed(1)+'%', 'of target'],
     ['Remaining', fmt(ent.remaining), 'unvaccinated'],
-    ['Deferred', fmt(ent.overallDeferred), 'overall'],
-    ['Refusal', fmt(ent.overallRefusal), 'overall']
+    ['Deferred', fmt(ent.overallDeferred), 'current'],
+    ['Refusal', fmt(ent.overallRefusal), 'current']
   ];
   document.getElementById('lgu-modal-kpis').innerHTML = kpis.map(k =>
     `<div class="modal-kpi"><span class="k-label">${k[0]}</span><span class="k-value">${k[1]}</span><span class="k-sub">${k[2]}</span></div>`
   ).join('');
 
   // daily bar chart
-  const maxDay = Math.max.apply(null, ent.days) || 1;
+  const activeDays = CURRENT_DAY_IDX >= 0 ? ent.days.slice(0, CURRENT_DAY_IDX + 1) : ent.days;
+  const maxDay = Math.max.apply(null, activeDays) || 1;
   const chart = document.getElementById('lgu-daily-chart');
   chart.innerHTML = DAYS.map((d,idx) => {
-    const v = ent.days[idx];
-    const h = Math.max(v/maxDay*100, v>0 ? 4 : 1);
-    return `<div class="bar-wrap" title="${d.label}: ${fmt(v)} (${pctFmt(v, ent.target)})">
-      <span class="bar-val">${v ? fmt(v) : ''}</span>
-      <span class="bar-col ${v===0?'bar-empty':''}" style="height:${h}%"></span>
+    const isFuture = CURRENT_DAY_IDX >= 0 && idx > CURRENT_DAY_IDX;
+    const v = isFuture ? 0 : ent.days[idx];
+    const h = isFuture ? 2 : Math.max(v/maxDay*100, v>0 ? 4 : 1);
+    return `<div class="bar-wrap ${isFuture ? 'bar-future' : ''}" title="${d.label}: ${isFuture ? 'Upcoming' : fmt(v) + ' (' + pctFmt(v, ent.target) + ')'}">
+      <span class="bar-val">${!isFuture && v ? fmt(v) : ''}</span>
+      <span class="bar-col ${isFuture ? 'bar-future-col' : (v===0 ? 'bar-empty' : '')}" style="height:${h}%"></span>
       <span class="bar-day">${d.label}</span>
     </div>`;
   }).join('');
 
   // daily table
   let cum = 0;
-  const dailyRows = DAYS.map(d => {
+  const dailyRows = DAYS.map((d, idx) => {
+    const isFuture = CURRENT_DAY_IDX >= 0 && idx > CURRENT_DAY_IDX;
+    if (isFuture) {
+      return `<tr class="future-day">
+        <td>${d.label}</td>
+        <td class="num">&mdash;</td>
+        <td class="pct">&mdash;</td>
+        <td class="num">${fmt(cum)}</td>
+        <td class="pct ${pctClass(pctOf(cum, ent.target))}">${pctFmt(cum, ent.target)}</td>
+      </tr>`;
+    }
     cum += ent.days[d.i];
     return `<tr>
       <td>${d.label}</td>
@@ -534,13 +579,7 @@ function openLGUModal(ent){
     </tr>`).join('');
   document.getElementById('lgu-week-table').innerHTML =
     `<thead><tr><th>Period</th><th>Total</th><th>% of target</th><th>Deferred</th><th>Refusal</th></tr></thead>
-     <tbody>${weekRows}
-      <tr class="region-row"><td><strong>Overall</strong></td>
-        <td class="num"><strong>${fmt(ent.overall)}</strong></td>
-        <td class="pct ${pctClass(pct)}"><strong>${pct.toFixed(1)}%</strong></td>
-        <td class="num">${fmt(ent.overallDeferred)}</td>
-        <td class="num">${fmt(ent.overallRefusal)}</td></tr>
-     </tbody>`;
+     <tbody>${weekRows}</tbody>`;
 
   document.getElementById('lgu-modal').classList.remove('hidden');
 }
@@ -561,7 +600,7 @@ function renderTable(){
   });
 
   const table = document.getElementById('data-table');
-  const dayHeaders = DAYS.map(d => `<th>${d.label}</th>`).join('');
+  const dayHeaders = DAYS.map(d => `<th rowspan="2">${d.label}</th>`).join('');
   const weekHeaders = [0,1,2].map(w =>
     `<th class="grp" colspan="3">${WEEK_SHORT[w]}</th>`).join('');
 
@@ -572,13 +611,9 @@ function renderTable(){
         <th rowspan="2">Target<br>6–59 mo</th>
         ${dayHeaders}
         ${weekHeaders}
-        <th colspan="4">Overall</th>
       </tr>
       <tr>
-        <th></th><th></th>
-        ${DAYS.map(()=>'<th></th>').join('')}
         ${[0,1,2].map(w=>`<th>Tot</th><th>Def</th><th>Ref</th>`).join('')}
-        <th>Tot</th><th>Def</th><th>Ref</th><th>Remaining</th>
       </tr>
     </thead>
     <tbody>${rows.join('')}</tbody>`;
@@ -603,10 +638,6 @@ function makeTableRow(ent, kind){
       <td class="num">${fmt(ent.target)}</td>
       ${days}
       ${weeks}
-      <td><span class="num">${fmt(ent.overall)}</span> <span class="pct ${pctClass(pct)}">${pct.toFixed(1)}%</span></td>
-      <td class="num">${fmt(ent.overallDeferred)}</td>
-      <td class="num">${fmt(ent.overallRefusal)}</td>
-      <td class="num">${fmt(ent.remaining)}</td>
     </tr>`;
 }
 
@@ -745,13 +776,11 @@ function exportCSV(){
     const s = String(v == null ? '' : v);
     return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
   };
-  const header = ['Name','Kind','Province','Target','Overall','Overall %','Remaining','Overall Deferred','Overall Refusal',
+  const header = ['Name','Kind','Province','Target',
     ...DAYS.map(d=>d.label), ...WEEK_LABELS, 'Wk1 Def','Wk1 Ref','Wk2 Def','Wk2 Ref','Wk3 Def','Wk3 Ref'];
   const lines = [header.map(esc).join(',')];
   const push = e => {
-    lines.push([esc(e.name), e.kind, esc(e.province||''), e.target, e.overall,
-      e.target>0 ? (e.overall/e.target*100).toFixed(2) : '', e.remaining,
-      e.overallDeferred, e.overallRefusal,
+    lines.push([esc(e.name), e.kind, esc(e.province||''), e.target,
       ...e.days,
       ...e.week, e.deferred[0], e.refusal[0], e.deferred[1], e.refusal[1], e.deferred[2], e.refusal[2]
     ].map(esc).join(','));
