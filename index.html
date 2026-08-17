@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIGTAS TIGDAS — MR SIA Dashboard · Region V</title>
+<link rel="icon" href="Logo.png" type="image/png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Top bar ===== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img src="Logo.png" alt="LIGTAS TIGDAS logo" class="brand-logo" id="brand-logo">
+      <div class="brand-text">
+        <h1 class="brand-title">LIGTAS <span>TIGDAS</span></h1>
+        <p class="brand-sub">Measles-Rubella Supplemental Immunization Activity</p>
+        <p class="brand-sub2">Region V · Bicol Region · 6–59 Months · August 2026</p>
+      </div>
+      <div class="topbar-right">
+        <div class="data-status" id="data-status">
+          <span class="status-dot"></span>
+          <span id="status-text">Loading data…</span>
+        </div>
+        <button class="icon-btn" id="about-btn" title="About this dashboard">?</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Region KPIs ===== -->
+  <section class="kpi-row" id="kpi-row" aria-label="Region V summary"></section>
+
+  <!-- ===== Tabs ===== -->
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="map">🗺️ Map</button>
+    <button class="tab-btn" data-tab="rankings">🏆 Rankings</button>
+    <button class="tab-btn" data-tab="table">📊 Data Table</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- ===== Map tab ===== -->
+    <section id="tab-map" class="tab-panel active">
+      <div id="map"></div>
+      <div id="map-loading">
+        <span class="map-loading-spinner"></span>
+        <span id="map-loading-text">Loading map data…</span>
+      </div>
+      <div id="map-toolbar">
+        <button id="reset-btn" title="Reset to full region view">⤢ Reset view</button>
+      </div>
+      <div id="map-card" class="hidden">
+        <div class="map-card-head">
+          <h3 id="map-card-title">—</h3>
+          <button id="map-card-close" class="modal-close" aria-label="Close">×</button>
+        </div>
+        <div id="map-card-body"></div>
+      </div>
+      <div id="legend">
+        <div class="legend-title">Overall accomplishment</div>
+        <div class="legend-row"><span class="swatch"></span>≥ 95%</div>
+        <div class="legend-row"><span class="swatch mid"></span>50 – 94%</div>
+        <div class="legend-row"><span class="swatch low"></span>1 – 49%</div>
+        <div class="legend-row"><span class="swatch zero"></span>0% / no data</div>
+      </div>
+    </section>
+
+    <!-- ===== Rankings tab ===== -->
+    <section id="tab-rankings" class="tab-panel">
+      <div class="rank-toolbar">
+        <div class="tool-group">
+          <label for="scope-select">Scope</label>
+          <select id="scope-select"></select>
+        </div>
+        <div class="tool-group">
+          <label for="metric-select">Rank by</label>
+          <select id="metric-select">
+            <option value="pct" selected>Accomplishment (%)</option>
+            <option value="count">No. vaccinated</option>
+          </select>
+        </div>
+        <div class="tool-group" id="cutoff-group">
+          <label for="cutoff-toggle">Show only LGUs with data</label>
+          <input type="checkbox" id="cutoff-toggle" title="Hide LGUs still at 0">
+        </div>
+        <span class="tool-spacer"></span>
+        <button class="ghost-btn" id="export-btn">⬇ Export CSV</button>
+      </div>
+
+      <div class="rank-layout">
+        <div class="rank-main">
+          <div class="panel-head">
+            <h2 id="rank-heading">Province Rankings</h2>
+            <span id="rank-sub" class="panel-sub"></span>
+          </div>
+          <ol class="rank-list" id="province-rank-list"></ol>
+        </div>
+
+        <aside class="lgu-panel" id="lgu-panel">
+          <div class="panel-head">
+            <h2 id="lgu-title">Select a province</h2>
+            <span id="lgu-sub" class="panel-sub"></span>
+          </div>
+          <div id="lgu-list"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===== Table tab ===== -->
+    <section id="tab-table" class="tab-panel">
+      <div class="table-toolbar">
+        <div class="tool-group">
+          <label for="table-province">Filter</label>
+          <select id="table-province">
+            <option value="">All — Region V</option>
+          </select>
+        </div>
+        <span class="tool-spacer"></span>
+        <div class="table-note">Percentages are computed against the projected 6–59 months population.</div>
+      </div>
+      <div class="table-scroll" id="table-scroll">
+        <table class="data-table" id="data-table"></table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span>LIGTAS TIGDAS · MR SIA 2026 · Region V (Bicol Region)</span>
+    <span id="footer-source">Data source: Google Sheet database</span>
+  </footer>
+</div>
+
+<!-- ===== LGU detail modal ===== -->
+<div id="lgu-modal" class="modal hidden">
+  <div class="modal-card modal-lg">
+    <button id="lgu-modal-close" class="modal-close" aria-label="Close">×</button>
+    <span class="kicker" id="lgu-modal-kicker">LGU · MUNICIPALITY / CITY</span>
+    <h3 id="lgu-modal-title">—</h3>
+    <div class="modal-kpis" id="lgu-modal-kpis"></div>
+
+    <div class="modal-section">
+      <div class="section-title">Daily MR administered</div>
+      <div class="bar-chart" id="lgu-daily-chart"></div>
+      <div class="table-scroll">
+        <table class="data-table" id="lgu-daily-table"></table>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Weekly &amp; overall summary</div>
+      <div class="table-scroll">
+        <table class="data-table" id="lgu-week-table"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== About modal ===== -->
+<div id="about-modal" class="modal hidden">
+  <div class="modal-card">
+    <button id="about-close" class="modal-close" aria-label="Close">×</button>
+    <h3>About this dashboard</h3>
+    <p><strong>LIGTAS TIGDAS</strong> is the Philippine Department of Health&rsquo;s nationwide measles-rubella supplemental immunization activity (MR-SIA) for children 6&ndash;59 months. This dashboard tracks daily accomplishment per province and LGU of <strong>Region V (Bicol)</strong>.</p>
+    <p><strong>Data:</strong> Projected population 6&ndash;59 months and daily MR administered figures come from the region&rsquo;s Ligtas Tigdas 2026 Google Sheet database. The dashboard reads the sheet live when published; otherwise it falls back to the local <em>data/accomplishment.js</em> sample.</p>
+    <p><strong>Columns</strong> follow the official report layout: 15 campaign days (Aug 10&ndash;14, Aug 17&ndash;21, Aug 24&ndash;28), weekly totals, weekly deferred &amp; refusal, overall accomplishment, overall deferred &amp; refusal, and remaining unvaccinated. Daily &amp; weekly percentages are computed against the projected population.</p>
+    <p><strong>Boundaries:</strong> PSA PSGC via the open-source <em>philippines-json-maps</em> project. Boundary lines are approximations and not legal or survey-grade.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="data/provinces.js"></script>
+<script src="data/municipalities.js"></script>
+<script src="data/accomplishment.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
