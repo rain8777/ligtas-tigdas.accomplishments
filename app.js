@@ -106,7 +106,10 @@ function num(v){
 function parseEntity(row, name, kind, province, psgc){
   const e = emptyEntity(name, kind, province, psgc);
   e.target = num(row[COL.target]);
-  for (let i=0;i<15;i++) e.days[i] = num(row[COL.days[i]]);
+  const rawDays = [];
+  for (let i=0;i<15;i++) rawDays.push(num(row[COL.days[i]]));
+  e.days[0] = rawDays[0];
+  for (let i=1;i<15;i++) e.days[i] = Math.max(0, rawDays[i] - rawDays[i-1]);
   for (let w=0;w<3;w++){
     e.week[w]     = num(row[COL.weekTotal[w]]);
     e.deferred[w] = num(row[COL.weekDeferred[w]]);
@@ -752,10 +755,10 @@ function showMapCard(provinceName){
   const p = prov.target > 0 ? prov.overall/prov.target*100 : 0;
   document.getElementById('map-card-body').innerHTML = `
     <div class="map-card-kpis">
-      <div class="map-card-kpi"><span class="k-label">Target</span><span class="k-value">${fmt(prov.target)}</span></div>
-      <div class="map-card-kpi"><span class="k-label">Vaccinated</span><span class="k-value">${fmt(prov.overall)}</span></div>
-      <div class="map-card-kpi"><span class="k-label">Accomplishment</span><span class="k-value">${p.toFixed(1)}%</span></div>
-      <div class="map-card-kpi"><span class="k-label">Remaining</span><span class="k-value">${fmt(prov.remaining)}</span></div>
+      <div class="map-card-kpi"><span class="k-label">Target</span><span class="k-value">${fmt(prov.target)}</span><span class="k-sub">6–59 months</span></div>
+      <div class="map-card-kpi"><span class="k-label">Vaccinated</span><span class="k-value">${fmt(prov.overall)}</span><span class="k-sub">MR administered</span></div>
+      <div class="map-card-kpi"><span class="k-label">Accomplishment</span><span class="k-value">${p.toFixed(1)}%</span><span class="k-sub">of target</span></div>
+      <div class="map-card-kpi"><span class="k-label">Remaining</span><span class="k-value">${fmt(prov.remaining)}</span><span class="k-sub">unvaccinated</span></div>
     </div>
     <ul class="map-card-list">${provinceLGURankRows(prov)}</ul>
     <div class="map-card-note">Click an LGU for the full daily breakdown.</div>`;
