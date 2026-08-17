@@ -853,7 +853,14 @@ document.getElementById('data-status').addEventListener('click', () => {
   if (DATA_MODE !== 'loading') initData();
 });
 
-window.addEventListener('resize', () => map.invalidateSize());
+window.addEventListener('resize', () => {
+  map.invalidateSize();
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer = setTimeout(() => map.invalidateSize(), 200);
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => map.invalidateSize());
+}
 
 /* ---------------- Boot ---------------- */
 function renderAll(){
