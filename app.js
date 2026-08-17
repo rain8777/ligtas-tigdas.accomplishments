@@ -116,28 +116,22 @@ function parseEntity(row, name, kind, province, psgc){
   return e;
 }
 function finalizeEntity(e){
-  for (let w=0;w<3;w++){
-    let s = 0; for (let i=0;i<15;i++) if (DAYS[i].week===w+1) s += e.days[i];
-    if (e.week[w] === 0 && s > 0) e.week[w] = s;
-  }
-  let ws = e.week.reduce((a,b)=>a+b,0);
-  if (e.overall === 0 && ws > 0) e.overall = ws;
-  if (e.remaining === 0){
-    e.remaining = Math.max(0, e.target - e.overall);
-  }
+  e.overall = e.week.reduce((a,b)=>a+b,0);
+  if (e.overall > e.target && e.target > 0) e.overall = e.target;
+  e.overallDeferred = e.deferred.reduce((a,b)=>a+b,0);
+  e.overallRefusal = e.refusal.reduce((a,b)=>a+b,0);
+  e.remaining = Math.max(0, e.target - e.overall);
   return e;
 }
 function clipEntityToToday(e){
   if (CURRENT_DAY_IDX < 0 || CURRENT_DAY_IDX >= 14) return e;
   for (let i = CURRENT_DAY_IDX+1; i < 15; i++) e.days[i] = 0;
   for (let w = 0; w < 3; w++){
-    let s = 0;
-    for (let i = 0; i < 15; i++) if (DAYS[i].week === w+1) s += e.days[i];
-    e.week[w] = s;
+    let allFuture = true;
+    for (let i = 0; i < 15; i++) if (DAYS[i].week === w+1 && i <= CURRENT_DAY_IDX) allFuture = false;
+    if (allFuture) e.week[w] = 0;
   }
-  e.overall = e.week.reduce((a,b) => a+b, 0);
-  e.remaining = Math.max(0, e.target - e.overall);
-  return e;
+  return finalizeEntity(e);
 }
 function clipModelToToday(model){
   clipEntityToToday(model.region);
@@ -156,10 +150,6 @@ function sumEntities(list){
       out.deferred[w] += e.deferred[w];
       out.refusal[w] += e.refusal[w];
     }
-    out.overall += e.overall;
-    out.overallDeferred += e.overallDeferred;
-    out.overallRefusal += e.overallRefusal;
-    out.remaining += e.remaining;
   });
   finalizeEntity(out);
   return out;
