@@ -42,7 +42,7 @@ const CONFIG = {
   // Optional: if your Google Workspace admin has disabled "Publish to web" (common
   // on government/school accounts), paste an Apps Script Web App URL here instead.
   // See guide.md, Part 2. Leave blank to use the normal published-sheet method.
-  appsScriptUrl: ""
+  appsScriptUrl: "https://script.google.com/macros/s/AKfycbwULp06aJwmPk4G9jd0sjw5NX1MWF_OjoniWM7XoC4lumpBqnUchEv0Xp2-jwEHUuR22A/exec"
 };
 
 const PROV_KEYS = ['Albay','Camarines Norte','Camarines Sur','Catanduanes','Masbate','Sorsogon'];
