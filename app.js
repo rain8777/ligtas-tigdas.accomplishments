@@ -116,12 +116,27 @@ function parseEntity(row, name, kind, province, psgc){
   return e;
 }
 function finalizeEntity(e){
-  e.overall = e.week.reduce((a,b)=>a+b,0);
+  e.overall = 0;
+  for (let w = 2; w >= 0; w--) if (e.week[w] > 0) { e.overall = e.week[w]; break; }
   if (e.overall > e.target && e.target > 0) e.overall = e.target;
-  e.overallDeferred = e.deferred.reduce((a,b)=>a+b,0);
-  e.overallRefusal = e.refusal.reduce((a,b)=>a+b,0);
+  e.overallDeferred = 0;
+  for (let w = 2; w >= 0; w--) if (e.deferred[w] > 0) { e.overallDeferred = e.deferred[w]; break; }
+  e.overallRefusal = 0;
+  for (let w = 2; w >= 0; w--) if (e.refusal[w] > 0) { e.overallRefusal = e.refusal[w]; break; }
   e.remaining = Math.max(0, e.target - e.overall);
   return e;
+}
+function weekVal(ent, w){
+  if (w === 0) return ent.week[0];
+  return Math.max(0, ent.week[w] - ent.week[w-1]);
+}
+function deferredVal(ent, w){
+  if (w === 0) return ent.deferred[0];
+  return Math.max(0, ent.deferred[w] - ent.deferred[w-1]);
+}
+function refusalVal(ent, w){
+  if (w === 0) return ent.refusal[0];
+  return Math.max(0, ent.refusal[w] - ent.refusal[w-1]);
 }
 function clipEntityToToday(e){
   if (CURRENT_DAY_IDX < 0 || CURRENT_DAY_IDX >= 14) return e;
@@ -355,7 +370,7 @@ function makeScopes(){
 }
 function scopeValue(ent, scope){
   if (scope.type === 'day') return ent.days[scope.i];
-  if (scope.type === 'week') return ent.week[scope.w];
+  if (scope.type === 'week') return weekVal(ent, scope.w);
   return ent.overall;
 }
 
@@ -542,13 +557,18 @@ function openLGUModal(ent){
      <tbody>${dailyRows}</tbody>`;
 
   // weekly + overall table
-  const weekRows = WEEK_LABELS.map((wl, w) => `<tr>
+  const weekRows = WEEK_LABELS.map((wl, w) => {
+    const wv = weekVal(ent, w);
+    const dv = deferredVal(ent, w);
+    const rv = refusalVal(ent, w);
+    return `<tr>
       <td>${wl}</td>
-      <td class="num">${fmt(ent.week[w])}</td>
-      <td class="pct ${pctClass(pctOf(ent.week[w], ent.target))}">${pctFmt(ent.week[w], ent.target)}</td>
-      <td class="num">${fmt(ent.deferred[w])}</td>
-      <td class="num">${fmt(ent.refusal[w])}</td>
-    </tr>`).join('');
+      <td class="num">${fmt(wv)}</td>
+      <td class="pct ${pctClass(pctOf(wv, ent.target))}">${pctFmt(wv, ent.target)}</td>
+      <td class="num">${fmt(dv)}</td>
+      <td class="num">${fmt(rv)}</td>
+    </tr>`;
+  }).join('');
   document.getElementById('lgu-week-table').innerHTML =
     `<thead><tr><th>Period</th><th>Total</th><th>% of target</th><th>Deferred</th><th>Refusal</th></tr></thead>
      <tbody>${weekRows}</tbody>`;
@@ -598,10 +618,13 @@ function makeTableRow(ent, kind){
     return `<td><span class="num">${fmt(v)}</span> <span class="pct ${pctClass(p)}">${pctFmt(v, ent.target)}</span></td>`;
   }).join('');
   const weeks = [0,1,2].map(w => {
-    const wp = pctOf(ent.week[w], ent.target);
-    return `<td><span class="num">${fmt(ent.week[w])}</span> <span class="pct ${pctClass(wp)}">${pctFmt(ent.week[w], ent.target)}</span></td>
-            <td class="num">${fmt(ent.deferred[w])}</td>
-            <td class="num">${fmt(ent.refusal[w])}</td>`;
+    const wv = weekVal(ent, w);
+    const dv = deferredVal(ent, w);
+    const rv = refusalVal(ent, w);
+    const wp = pctOf(wv, ent.target);
+    return `<td><span class="num">${fmt(wv)}</span> <span class="pct ${pctClass(wp)}">${pctFmt(wv, ent.target)}</span></td>
+            <td class="num">${fmt(dv)}</td>
+            <td class="num">${fmt(rv)}</td>`;
   }).join('');
   const cls = kind === 'region' ? 'region-row' : (kind === 'group' ? 'group-row' : '');
   const name = kind === 'group' ? '▸ ' + ent.name : ent.name;
@@ -754,7 +777,8 @@ function exportCSV(){
   const push = e => {
     lines.push([esc(e.name), e.kind, esc(e.province||''), e.target,
       ...e.days,
-      ...e.week, e.deferred[0], e.refusal[0], e.deferred[1], e.refusal[1], e.deferred[2], e.refusal[2]
+      weekVal(e,0), weekVal(e,1), weekVal(e,2),
+      deferredVal(e,0), refusalVal(e,0), deferredVal(e,1), refusalVal(e,1), deferredVal(e,2), refusalVal(e,2)
     ].map(esc).join(','));
   };
   push(MODEL.region);
