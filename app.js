@@ -27,6 +27,10 @@ function getCurrentDayIndex(){
   return -1;
 }
 const CURRENT_DAY_IDX = getCurrentDayIndex();
+function getEffectiveDayIdx(){
+  if (CURRENT_DAY_IDX < 0) return -1;
+  return new Date().getHours() < 12 ? Math.max(-1, CURRENT_DAY_IDX - 1) : CURRENT_DAY_IDX;
+}
 const WEEK_LABELS = ['Week 1 (Aug 10–14)','Week 2 (Aug 17–21)','Week 3 (Aug 24–28)'];
 const WEEK_SHORT = ['Wk 1','Wk 2','Wk 3'];
 
@@ -674,18 +678,27 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => map.
 const REGION_BOUNDS = L.geoJSON(PROVINCES_DATA).getBounds();
 let provinceLayer = null, muniLayer = null;
 
-function fillFor(p){
-  if (p >= 95) return { color:'#14532d', fillColor:'#22c55e' };
-  if (p >= 50) return { color:'#92400e', fillColor:'#f59e0b' };
-  if (p > 0)  return { color:'#7f1d1d', fillColor:'#ef4444' };
+function effectiveCumPct(ent){
+  const dayIdx = getEffectiveDayIdx();
+  if (dayIdx < 0 || !ent) return 0;
+  let cum = 0;
+  for (let i = 0; i <= dayIdx && i < 15; i++) cum += ent.days[i];
+  return ent.target > 0 ? cum / ent.target * 100 : 0;
+}
+function fillForProgress(cumPct, dayIdx){
+  const cls = progressClass(cumPct, dayIdx);
+  if (cls === 'good') return { color:'#14532d', fillColor:'#22c55e' };
+  if (cls === 'mid')  return { color:'#92400e', fillColor:'#f59e0b' };
+  if (cls === 'low')  return { color:'#7f1d1d', fillColor:'#ef4444' };
   return { color:'#7c8aa0', fillColor:'#d8dee9' };
 }
 function geoStyle(feature, opacity){
   const ent = entityByMuni(feature.properties);
-  const p = ent && ent.target > 0 ? ent.overall/ent.target*100 : 0;
-  const f = fillFor(p);
+  const dayIdx = getEffectiveDayIdx();
+  const cumP = effectiveCumPct(ent);
+  const f = fillForProgress(cumP, dayIdx);
   return { color:f.color, weight: feature.properties.psgc && feature.properties.province ? 1.4 : 2,
-    fillColor:f.fillColor, fillOpacity: opacity != null ? opacity : (p>0 ? .55 : .25) };
+    fillColor:f.fillColor, fillOpacity: opacity != null ? opacity : (cumP>0 ? .55 : .25) };
 }
 function entityByMuni(props){
   if (!props) return null;
@@ -718,8 +731,9 @@ function showProvinces(){
     style: f => geoStyle(f, 0.55),
     onEachFeature: (feature, layer) => {
       const ent = MODEL.provinces.find(p => p.name === feature.properties.name) || null;
-      const p = ent && ent.target > 0 ? ent.overall/ent.target*100 : 0;
-      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(ent ? ent.overall : 0, ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
+      const dayIdx = getEffectiveDayIdx();
+      const cumP = effectiveCumPct(ent);
+      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(effectiveCumPct(ent), ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
       layer.on('click', () => selectProvinceMap(feature.properties.name, layer));
     }
   }).addTo(map);
@@ -733,7 +747,8 @@ function showMunicipalities(provinceName){
     style: f => geoStyle(f),
     onEachFeature: (feature, layer) => {
       const ent = entityByMuni(feature.properties);
-      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(ent ? ent.overall : 0, ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
+      const cumP = effectiveCumPct(ent);
+      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(cumP, ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); openLGUModal(ent); });
     }
   }).addTo(map);
