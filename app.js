@@ -568,7 +568,7 @@ function openLGUModal(ent){
     </tr>`;
   }).join('');
   document.getElementById('lgu-daily-table').innerHTML =
-    `<thead><tr><th>Date</th><th>Vaccinated</th><th>Daily %</th></tr></thead>
+    `<thead><tr><th>Date</th><th>Vaccinated</th><th>Accomplishment</th></tr></thead>
      <tbody>${dailyRows}</tbody>`;
 
   // weekly + overall table

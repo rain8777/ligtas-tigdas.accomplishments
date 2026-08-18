@@ -350,21 +350,27 @@ body{
   color:var(--text-soft);display:flex;align-items:center;justify-content:center;
 }
 .modal-close:hover{border-color:var(--brand);color:var(--brand);}
-.modal-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px;}
-.modal-kpi{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
-.modal-kpi .k-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);}
-.modal-kpi .k-value{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.15rem;margin-top:3px;}
-.modal-kpi .k-sub{font-size:.64rem;color:var(--text-faint);}
+.modal-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.modal-kpi{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;}
+.modal-kpi .k-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);line-height:1.2;}
+.modal-kpi .k-value{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.15rem;color:var(--text);line-height:1.2;}
+.modal-kpi .k-sub{font-size:.62rem;color:var(--text-faint);font-weight:500;line-height:1.2;}
 .modal-section{margin-bottom:20px;}
 .section-title{font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);margin-bottom:10px;}
-.bar-chart{display:flex;align-items:flex-end;gap:7px;height:150px;padding:8px 4px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
-.bar-wrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;}
-.bar-col{width:100%;max-width:44px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--accent),var(--brand));min-height:2px;transition:height .3s ease;}
-.bar-val{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;color:var(--text-soft);}
-.bar-day{font-size:.58rem;font-weight:600;color:var(--text-faint);white-space:nowrap;transform:rotate(-28deg);transform-origin:top center;}
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:160px;padding:10px 2px 0;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%;min-width:0;}
+.bar-col{width:100%;max-width:40px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--accent),var(--brand));min-height:2px;transition:height .3s ease;}
+.bar-val{font-family:'JetBrains Mono',monospace;font-size:.55rem;font-weight:600;color:var(--text-soft);white-space:nowrap;overflow:visible;}
+.bar-day{font-size:.52rem;font-weight:600;color:var(--text-faint);white-space:nowrap;overflow:visible;text-overflow:ellipsis;max-width:100%;}
 .bar-empty{background:#dfe4ec;}
 .bar-future .bar-future-col{background:#d1d5db !important;opacity:.35;}
 .bar-future .bar-day{opacity:.45;}
+.modal-daily-table{min-width:0 !important;width:100%;}
+.modal-daily-table th,.modal-daily-table td{padding:7px 10px;white-space:nowrap;}
+.modal-daily-table td:first-child,.modal-daily-table th:first-child{text-align:left;font-family:'Inter',sans-serif;}
+.modal-week-table{min-width:0 !important;width:100%;}
+.modal-week-table th,.modal-week-table td{padding:7px 10px;}
+.modal-week-table td:first-child,.modal-week-table th:first-child{text-align:left;font-family:'Inter',sans-serif;font-weight:600;}
 .future-day td{color:var(--text-faint);opacity:.55;}
 
 /* ================= Footer ================= */
@@ -472,9 +478,13 @@ body{
   .modal-kpi .k-value{font-size:1rem;}
   .modal-section{margin-bottom:16px;}
   .section-title{font-size:.7rem;}
-  .bar-chart{height:110px;gap:4px;}
+  .bar-chart{height:120px;gap:3px;padding:8px 0 0;}
   .bar-day{font-size:.48rem;}
   .bar-val{font-size:.5rem;}
+  .bar-col{max-width:32px;}
+  .modal-daily-table,.modal-week-table{font-size:.72rem;}
+  .modal-daily-table th,.modal-daily-table td{padding:6px 8px;}
+  .modal-week-table th,.modal-week-table td{padding:6px 8px;}
   .page-footer{flex-direction:column;align-items:center;text-align:center;padding:12px 14px 16px;gap:4px;}
 }
 @media (max-width: 380px){
