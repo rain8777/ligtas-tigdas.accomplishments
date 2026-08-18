@@ -731,9 +731,8 @@ function showProvinces(){
     style: f => geoStyle(f, 0.55),
     onEachFeature: (feature, layer) => {
       const ent = MODEL.provinces.find(p => p.name === feature.properties.name) || null;
-      const dayIdx = getEffectiveDayIdx();
       const cumP = effectiveCumPct(ent);
-      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(effectiveCumPct(ent), ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
+      layer.bindTooltip(`${feature.properties.name} — ${cumP.toFixed(1)}%`, { className:'bb-label', sticky:true });
       layer.on('click', () => selectProvinceMap(feature.properties.name, layer));
     }
   }).addTo(map);
@@ -748,7 +747,7 @@ function showMunicipalities(provinceName){
     onEachFeature: (feature, layer) => {
       const ent = entityByMuni(feature.properties);
       const cumP = effectiveCumPct(ent);
-      layer.bindTooltip(`${feature.properties.name} — ${pctFmt(cumP, ent ? ent.target : 0)}`, { className:'bb-label', sticky:true });
+      layer.bindTooltip(`${feature.properties.name} — ${cumP.toFixed(1)}%`, { className:'bb-label', sticky:true });
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); openLGUModal(ent); });
     }
   }).addTo(map);
